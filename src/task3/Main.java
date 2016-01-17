@@ -60,9 +60,15 @@ class Serializer{
         if (bw==null) bw = new BufferedWriter(new FileWriter("c:\\Java\\serialize.txt"));
         Class<?> cl = object.getClass();
         Field[] fields = cl.getDeclaredFields();
+        String def = "";
+        for (int i = 0; i < level; i++) {
+            def = def + "\t";
+        }
+        def = def + "Field: {<name:Start><value:>}\n";
+        bw.write(def);
 
         for (Field field:fields ) {
-            String def = "";
+            def="";
             if(field.isAnnotationPresent(Save.class)){
                 for (int i = 0; i < level; i++) {
                     def = def + "\t";
@@ -72,11 +78,11 @@ class Serializer{
                     def = def + field.getInt(object) +">}\n";
                     bw.write(def);
                 } else if (field.getType() == String.class){
-                    def = def + (String)field.get(object) +">}\n";
+                    def = def + field.get(object) +">}\n";
                     bw.write(def);
                 } else if (field.getType() == MyClass.class){
                     MyClass temp = (MyClass)field.get(object);
-                    if(temp==null) {def = def +"null>\n"; bw.write(def);}
+                    if(temp==null) {def = def +"null>}\n"; bw.write(def);}
                     else {
                     def = def +"object>}\n";
                     bw.write(def);
@@ -85,12 +91,18 @@ class Serializer{
                 } else def = def+"unseriasable>\n";
              }
         }
+        def="";
+        for (int i = 0; i < level; i++) {
+            def = def + "\t";
+        }
+        def = def + "Field: {<name:Finish><value:>}\n";
+        bw.write(def);
         if (level==0) bw.close();
     }
     public static MyClass deserialize(BufferedReader br) throws IOException, NoSuchFieldException, IllegalAccessException {
         if(br==null) br = new BufferedReader(new FileReader("c:\\Java\\serialize.txt"));
         MyClass myClass = new MyClass();
-        String line = "";
+        String line;
         Pattern pattern = Pattern.compile("(.*Field: \\{<name:(.*)><value:(.*)>\\})");
         Class<?> cl = MyClass.class;
         while ((line = br.readLine())!=null){
@@ -99,6 +111,8 @@ class Serializer{
                 continue;
             }
             String name = matcher.group(2);
+            if (name.equals("Start")) continue;
+            if (name.equals("Finish")) return myClass;
             String value = matcher.group(3);
             Field field = cl.getDeclaredField(name);
             if (!field.isAnnotationPresent(Save.class)) continue;
